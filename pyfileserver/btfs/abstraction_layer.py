@@ -36,7 +36,7 @@ class AbstractionLayer(object):
          mimetype = 'application/octet-stream'
          return mimetype
       else:
-         return "text/html"
+         return "httpd/unix-directory" 
 
    def getLastModified(self, respath):
          statresults = fs.stat(respath)
@@ -51,13 +51,9 @@ class AbstractionLayer(object):
    
    def getEntityTag(self, respath):
       if not fs.isfile(respath):
-         return md5.new(respath).hexdigest()
-      #if sys.platform == 'win32':
+         return '"' + md5.new(respath).hexdigest() +'"'
       statresults = fs.stat(respath)
       return md5.new(respath).hexdigest() + '-' + str(statresults.st_mtime) + '-' + str(statresults.st_size)
-      #else:
-      #   statresults = os.stat(respath)
-      #   return str(statresults[stat.ST_INO]) + '-' + str(statresults[stat.ST_MTIME]) + '-' + str(statresults[stat.ST_SIZE])
 
    def matchEntityTag(self, respath, entitytag):
       return entitytag == self.getEntityTag(respath)
@@ -139,7 +135,7 @@ class AbstractionLayer(object):
          isfile = fs.isfile(respath)
          if propertyname == 'creationdate':
              statresults = fs.stat(respath)
-             return httpdatehelper.getstrftime(statresults.st_ctime)
+             return httpdatehelper.rfc3339(statresults.st_ctime)
          elif propertyname == 'getcontenttype':
              return self.getContentType(respath)
          elif propertyname == 'resourcetype':
@@ -154,6 +150,8 @@ class AbstractionLayer(object):
             if isfile:
                statresults = fs.stat(respath)
                return str(statresults.st_size)
+            else:
+                return '0'
             raise HTTPRequestException(processrequesterrorhandler.HTTP_NOT_FOUND)        
          elif propertyname == 'getetag':
             return self.getEntityTag(respath)
@@ -172,16 +170,12 @@ class AbstractionLayer(object):
       appProps.append( ('DAV:','getcontenttype') )
       appProps.append( ('DAV:','resourcetype') )
       appProps.append( ('DAV:','getlastmodified') )
-      if fs.isfile(respath):
-         appProps.append( ('DAV:','getcontentlength') )
-         appProps.append( ('DAV:','getetag') )
+      appProps.append( ('DAV:','getetag') )
+      appProps.append( ('DAV:','getcontentlength') )
       return appProps
    
    def resolvePath(self, resheadpath, urlelementlist):
       relativepath = os.sep.join(urlelementlist)
-      #if relativepath.endswith(os.sep):
-      #   relativepath = relativepath[:-len(os.sep)] 
-      # remove suffix os.sep since it causes error (SyntaxError) with os.path functions
       relativepath = os.path.normpath(relativepath)
      
       normrelativepath = ''

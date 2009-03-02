@@ -283,8 +283,8 @@ class RequestServer(object):
         headers.append( ('DAV','1,2') )
         headers.append( ('Server','DAV/2') )
         headers.append( ('Date',httpdatehelper.getstrftime()) )
-        start_response('200 OK', headers)        
-        return ['']     
+        start_response('302 FOUND', headers)
+        return ['']
 
 
     def doGETHEADDirectory(self, environ, start_response):
@@ -695,7 +695,7 @@ a.symlink { font-style: italic; }
             requestbody = environ['wsgi.input'].read(contentlengthtoread)
 
         if requestbody == '':
-            requestbody = "<D:propfind xmlns:D='DAV:'><D:allprop/></D:propfind>"      
+            requestbody = '<D:propfind xmlns:D="DAV:"><D:allprop/></D:propfind>'
 
         try:
             doc = Sax2.Reader().fromString(requestbody)
@@ -729,10 +729,10 @@ a.symlink { font-style: italic; }
 
         start_response('207 Multistatus', [('Content-Type','text/xml'), ('Date',httpdatehelper.getstrftime())])
 
-        yield "<?xml version='1.0' ?>"
-        yield "<D:multistatus xmlns:D='DAV:'>"
+        yield '<?xml version="1.0" encoding="UTF-8"?>'
+        yield '<D:multistatus xmlns:D="DAV:">'
         for (respath , resdisplayname) in reslist:
-            yield "<D:response>"
+            yield '<D:response xmlns:D="DAV:">'
             yield "<D:href>" + websupportfuncs.constructFullURL(resdisplayname, environ) + "</D:href>"    
 
             if propFindMode == 1 or propFindMode == 2:
@@ -745,9 +745,9 @@ a.symlink { font-style: italic; }
                         yield "<D:" + propname + "/>"
                     else:
                         if propns is not None and propns != '':
-                            yield "<A:" + propname + " xmlns:A='" + propns + "'/>"
+                            yield '<A:' + propname + ' xmlns:A="' + propns + '"/>'
                         else:
-                            yield "<" + propname + " xmlns='" + propns + "'/>"
+                            yield '<'+ propname + ' xmlns="' + propns + '"/>'
                 yield "</D:prop>\n<D:status>HTTP/1.1 200 OK</D:status>\n</D:propstat>"
             else:
                 laststatus = ''
@@ -772,23 +772,26 @@ a.symlink { font-style: italic; }
                     if propvalue is None:
                         propvalue = '';               
                     if propns == 'DAV:':
-                        yield "<D:" + propname + ">"
-                        yield propvalue
-                        yield "</D:"+propname+">"
+                        if propvalue is None or propvalue=='':
+                            yield "<D:%s/>"%propname
+                        else:
+                            yield "<D:" + propname + ">"
+                            yield propvalue
+                            yield "</D:"+propname+">"
                     else:
                         if propns != None and propns != '':
-                            yield "<A:" + propname + " xmlns:A='" + propns + "' >"
+                            yield "<A:" + propname + ' xmlns:A="' + propns + '" >'
                             yield propvalue
                             yield "</A:"+propname+">"
                         else:
-                            yield "<" + propname + " xmlns='" + propns + "' >"
+                            yield "<" + propname + ' xmlns="' + propns + '" >'
                             yield propvalue
                             yield "</"+propname+">"
                     laststatus = propstatus
                 if laststatus != '':
                     yield "</D:prop>\n<D:status>HTTP/1.1 " + laststatus + "</D:status>\n</D:propstat>"         
             yield "</D:response>"
-        yield "</D:multistatus>"      
+        yield "</D:multistatus>"
         return 
 
     def doCOPY(self, environ, start_response):

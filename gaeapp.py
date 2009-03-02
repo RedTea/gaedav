@@ -22,7 +22,8 @@ def profile_main():
     # stats.print_callers()
     logging.info("Profile data:\n%s", stream.getvalue())
 
-main = profile_main
+#main = profile_main
+main = real_main
 
 if __name__ == "__main__":
     main()

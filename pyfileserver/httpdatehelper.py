@@ -35,6 +35,11 @@ def getstrftime(secs=None):
    # rfc 1123 date/time format
    return time.strftime('%a, %d %b %Y %H:%M:%S GMT', time.gmtime(secs))
 
+def rfc3339(secs=None):
+   # TODO(bhy) Real RFC3339 support.
+   # rfc 3339 date/time format (not really)
+   return time.strftime("%Y-%m-%dT%H-%M-%S-0800", time.gmtime(secs))
+
 
 def getsecstime(timeformat):
    result = getgmtime(timeformat)
