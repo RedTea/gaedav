@@ -190,6 +190,7 @@ class RequestResolver(object):
 
         if 'HTTP_DESTINATION' in environ:
             desturl = websupportfuncs.getRelativeURL(environ['HTTP_DESTINATION'], environ)
+            desturl = urllib.unquote(desturl)
             (destrealm, destpath, destdisplaypath, destresourceAL) = self.resolveRealmURI(environ['pyfileserver.config'], desturl)
       
             if destrealm is None:
