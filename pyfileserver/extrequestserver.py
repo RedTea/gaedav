@@ -283,7 +283,7 @@ class RequestServer(object):
         headers.append( ('DAV','1,2') )
         headers.append( ('Server','DAV/2') )
         headers.append( ('Date',httpdatehelper.getstrftime()) )
-        start_response('302 FOUND', headers)
+        start_response('200 OK', headers)
         return ['']
 
 

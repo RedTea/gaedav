@@ -218,7 +218,7 @@ class RequestResolver(object):
         headers.append( ('DAV','1,2') )
         headers.append( ('Server','DAV/2') )
         headers.append( ('Date',httpdatehelper.getstrftime()) )
-        start_response('302 FOUND', headers)
+        start_response('200 OK', headers)
         return ['']  
 
     def doOPTIONSSpec(self, environ, start_response):
@@ -240,7 +240,7 @@ class RequestResolver(object):
         headers.append( ('DAV','1,2') )
         headers.append( ('Server','DAV/2') )
         headers.append( ('Date',httpdatehelper.getstrftime()) )
-        start_response('302 FOUND', headers)
+        start_response('200 OK', headers)
         return ['']     
         
     def resolveRealmURI(self, srvcfg, requestpath):
