@@ -2,7 +2,7 @@ import os.path
 import logging
 from google.appengine.ext import db
 from google.appengine.ext.db import GqlQuery
-from cache import sessioncached
+from cache import cached_dir, cached_file, cached_content
 
 #TODO: may apply the technique described here:
 # http://code.google.com/appengine/docs/python/datastore/keysandentitygroups.html
@@ -13,11 +13,14 @@ class Path(db.Model):
     create_time = db.DateTimeProperty(required=True, auto_now_add = True)
     modify_time = db.DateTimeProperty(required=True, auto_now = True)
 
-    # the logics
+    def put(self):
+        db.Model.put(self)
+        self.cache.set(self.path, self)
+        return 
 
-    def get_contents(self):
-        result = list(self.dir_set) + list(self.file_set)
-        return result
+    def delete(self):
+        self.cache.delete(self.path)
+        return db.Model.delete(self)
 
     @classmethod
     def normalize(cls, p):
@@ -45,15 +48,18 @@ class Path(db.Model):
         """
         return os.path.dirname(cls.normalize(p))
 
-    #XXX the cache can't flush except the returned object is None
     @classmethod
-    @sessioncached
     def retrieve(cls, path):
         path = cls.normalize(path)
+        result = cls.cache.get(path)
+        if result:
+            return result
         logging.debug("Retrieving with path = %s", repr(path))
         result = list(cls.gql("WHERE path = :1", path))
         if len(result) == 1:
-            return result[0]
+            result = result[0]
+            cls.cache.set(path, result)
+            return result
         elif len(result) == 0:
             return None
         else:
@@ -62,6 +68,8 @@ class Path(db.Model):
     @classmethod
     def new(cls, path):
         path = cls.normalize(path)
+        # TODO raise error when this path does exist
+
         # here we use Dir.retrieve because the parent must be a Dir.
         parent_path = Dir.retrieve(cls.get_parent_path(path))
         result = cls(path=path, parent_path=parent_path)
@@ -70,7 +78,11 @@ class Path(db.Model):
 
 class Dir(Path):
     parent_path = db.ReferenceProperty(Path)
-
+    cache = cached_dir
+   
+    def get_contents(self):
+        result = list(self.dir_set) + list(self.file_set)
+        return result    
 
 class File(Path):
     ChunkSize = 800*1024 # split file to chunks at most 800K
@@ -79,19 +91,24 @@ class File(Path):
     #content = db.BlobProperty(default='')
     #content = db.ListProperty(db.Blob)
 
+    cache = cached_file
+
     def put(self):
-        try:
+        if self.is_saved():
             self.size = sum(len(chunk) for chunk in self.chunk_set)
-        except db.NotSavedError:
+        else:
             self.size = 0
-        db.Model.put(self)
+        Path.put(self)
         return
 
     def get_content(self):
         """
         Join chunks together.
         """
-        chunks = Chunk.gql("WHERE file=:1 ORDER BY offset ASC", self)
+        if self.is_saved():
+            chunks = Chunk.gql("WHERE file=:1 ORDER BY offset ASC", self)
+        else:
+            chunks = []
         result = ''.join(chunk.data for chunk in chunks)
         return result
     

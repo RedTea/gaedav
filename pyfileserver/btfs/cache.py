@@ -2,6 +2,7 @@
 Implement cache mechanism.
 """
 import logging
+from google.appengine.api import memcache
 
 def sessioncached(f):
     """
@@ -34,4 +35,31 @@ def sessioncached(f):
         pass
     return cached_func
 
+# TODO Maybe more faster if we apply sessioncache to memcache.
 
+class NamespacedCache(object):
+    def __init__(self, namespace):
+        self.namespace = namespace
+        return
+
+    def namespaced(self, key):
+        return self.namespace + ':' + key
+    
+    def get(self, key):
+        nk = self.namespaced(key)
+        result = memcache.get(nk)
+        if result is not None:
+            logging.info("Cache HIT: %s", repr(nk))
+        else:
+            logging.info("Cache MISS: %s", repr(nk))
+        return result
+
+    def set(self, key, value):
+        return memcache.set(self.namespaced(key), value)
+
+    def delete(self, key):
+        return memcache.delete(self.namespaced(key))
+
+cached_dir = NamespacedCache('dir')
+cached_file = NamespacedCache('file')
+cached_content = NamespacedCache('content')

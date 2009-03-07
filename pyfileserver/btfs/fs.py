@@ -150,5 +150,8 @@ class BtIO(StringIO.StringIO):
         return
 
     def __del__(self):
-        if not self.closed:
-            self.close()
+        try:
+            if not self.closed:
+                self.close()
+        except AttributeError:
+            pass
